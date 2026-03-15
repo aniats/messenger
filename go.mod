@@ -3,14 +3,15 @@ module github.com/aniats/messenger
 go 1.26
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3
 	github.com/joho/godotenv v1.5.1
+	github.com/spf13/pflag v1.0.10
 	google.golang.org/grpc v1.79.1
 	google.golang.org/protobuf v1.36.10
 )
 
 require (
-	github.com/spf13/pflag v1.0.10 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect

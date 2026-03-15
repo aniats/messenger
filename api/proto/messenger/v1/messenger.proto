@@ -33,8 +33,14 @@ message CreateChatResponse {
   string chat_id = 1;
 }
 
+enum ChatFilter {
+  CHAT_FILTER_ALL = 0;
+  CHAT_FILTER_MY = 1;
+}
+
 message ListChatsRequest {
   string session_id = 1;
+  ChatFilter filter = 2;
 }
 
 message ListChatsResponse {

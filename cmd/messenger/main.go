@@ -70,14 +70,18 @@ func main() {
 		}
 	})
 
-	cfg := config.Parse()
+	cfg, err := config.Parse()
+	if err != nil {
+		slog.Error("failed to parse config", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 
 	log := setupLogger(cfg.Env, cfg.LogLevel)
 
 	application := app.New(log, grpc.Config{
 		Port: cfg.Port,
 		Host: "",
-	})
+	}, cfg.SessionIdleTimeout)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
