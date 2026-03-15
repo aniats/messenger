@@ -1,4 +1,3 @@
-// Package grpc provides the gRPC server implementation.
 package grpc
 
 import (
@@ -7,6 +6,8 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/aniats/messenger/internal/server"
+	pb "github.com/aniats/messenger/pkg/messenger/v1"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -14,24 +15,23 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-// Config holds the gRPC server configuration.
 type Config struct {
 	Port int
 	Host string
 }
 
-// Server wraps the gRPC server with logging and configuration.
 type Server struct {
 	log        *slog.Logger
 	GRPCServer *grpc.Server
 	cfg        Config
 }
 
-// New creates a new gRPC server with the given logger and configuration.
-func New(log *slog.Logger, cfg Config) *Server {
+func New(log *slog.Logger, cfg Config, handler *server.Server) *Server {
 	gRPCServer := grpc.NewServer(grpc.ChainUnaryInterceptor(
 		recovery.UnaryServerInterceptor(),
 	))
+
+	pb.RegisterMessengerServer(gRPCServer, handler)
 
 	return &Server{
 		log:        log,
@@ -40,7 +40,6 @@ func New(log *slog.Logger, cfg Config) *Server {
 	}
 }
 
-// Run starts listening and serving gRPC requests.
 func (s *Server) Run() error {
 	log := s.log.With(slog.String("op", "messenger.Run"))
 
@@ -63,7 +62,6 @@ func (s *Server) Run() error {
 	return nil
 }
 
-// Stop gracefully stops the gRPC server.
 func (s *Server) Stop() {
 	log := s.log.With(slog.String("op", "messenger.Stop"))
 
