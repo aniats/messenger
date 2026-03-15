@@ -1,0 +1,31 @@
+# Refer to golangci-lint's example config file for more options and information:
+# https://github.com/golangci/golangci-lint/blob/master/.golangci.reference.yml
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+  exclude-files:
+    - ".*\\.pb\\.go$"
+
+linters:
+  enable-all: true
+  disable:
+    - tenv # deprecated
+
+linters-settings:
+  depguard:
+    rules:
+      main:
+        allow:
+          - $gostd
+          - github.com/aniats/messenger
+          - github.com/joho/godotenv
+          - github.com/spf13/pflag
+          - github.com/grpc-ecosystem/go-grpc-middleware
+          - google.golang.org/grpc
+          - google.golang.org/protobuf
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
