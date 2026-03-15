@@ -1,14 +1,17 @@
+// Package main is the entry point for the messenger application.
 package main
 
 import (
-	"github.com/joho/godotenv"
+	"context"
 	"log/slog"
-	"messenger/internal/app"
-	"messenger/internal/config"
+	"os"
 	"os/signal"
 	"syscall"
 
-	"os"
+	"github.com/aniats/messenger/internal/app"
+	"github.com/aniats/messenger/internal/app/grpc"
+	"github.com/aniats/messenger/internal/config"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -16,44 +19,78 @@ const (
 	envProd  = "prod"
 )
 
-func setupLogger(env string) *slog.Logger {
-	var log *slog.Logger
+func parseLogLevel(level string) slog.Level {
+	switch level {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelDebug
+	}
+}
+
+func setupLogger(env string, logLevel string) *slog.Logger {
+	level := parseLogLevel(logLevel)
+
+	var handler slog.Handler
 
 	switch env {
-	case envLocal:
-		log = slog.New(
-			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
-		)
 	case envProd:
-		log = slog.New(
-			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
-		)
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level:       level,
+			AddSource:   false,
+			ReplaceAttr: nil,
+		})
 	default:
-		log = slog.New(
-			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
-		)
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level:       level,
+			AddSource:   false,
+			ReplaceAttr: nil,
+		})
 	}
 
-	return log
+	return slog.New(handler)
+}
+
+func onEnv(env string, fn func()) {
+	if os.Getenv("ENV") == env {
+		fn()
+	}
 }
 
 func main() {
-	godotenv.Load("configs/.env")
+	onEnv(envLocal, func() {
+		if err := godotenv.Load("configs/.env"); err != nil {
+			slog.Warn("failed to load .env file", slog.String("error", err.Error()))
+		}
+	})
+
 	cfg := config.Parse()
 
-	log := setupLogger(cfg.Env)
+	log := setupLogger(cfg.Env, cfg.LogLevel)
 
-	application := app.New(log, cfg.Port)
+	application := app.New(log, grpc.Config{
+		Port: cfg.Port,
+		Host: "",
+	})
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer cancel()
 
 	go func() {
-		application.GRPCServer.MustRun()
+		if err := application.Start(ctx); err != nil {
+			log.Error("application start failed", slog.String("error", err.Error()))
+			cancel()
+		}
 	}()
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+	<-ctx.Done()
 
-	<-stop
-
-	application.GRPCServer.Stop()
+	application.Stop()
 	log.Info("Gracefully stopped")
 }

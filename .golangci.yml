@@ -4,16 +4,26 @@
 run:
   timeout: 5m
   modules-download-mode: readonly
-  skip-files:
+  exclude-files:
     - ".*\\.pb\\.go$"
 
 linters:
-  enable:
-    - errcheck
-    - goimports
-    - revive
-    - govet
-    - staticcheck
+  enable-all: true
+  disable:
+    - tenv # deprecated
+
+linters-settings:
+  depguard:
+    rules:
+      main:
+        allow:
+          - $gostd
+          - github.com/aniats/messenger
+          - github.com/joho/godotenv
+          - github.com/spf13/pflag
+          - github.com/grpc-ecosystem/go-grpc-middleware
+          - google.golang.org/grpc
+          - google.golang.org/protobuf
 
 issues:
   exclude-use-default: false

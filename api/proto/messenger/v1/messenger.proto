@@ -4,11 +4,12 @@ package messenger.v1;
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
 
-option go_package = "messenger/pkg/messenger/v1";
+option go_package = "github.com/aniats/messenger/pkg/messenger/v1";
 
 service Messenger {
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
   rpc CreateChat(CreateChatRequest) returns (CreateChatResponse);
+  rpc ListChats(ListChatsRequest) returns (ListChatsResponse);
   rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
   rpc GetHistory(GetHistoryRequest) returns (GetHistoryResponse);
 }
@@ -32,19 +33,39 @@ message CreateChatResponse {
   string chat_id = 1;
 }
 
+message ListChatsRequest {
+  string session_id = 1;
+}
+
+message ListChatsResponse {
+  repeated ChatInfo chats = 1;
+}
+
+message ChatInfo {
+  string chat_id = 1;
+  string name = 2;
+  bool is_read_only = 3;
+}
+
 message SendMessageRequest {
   string session_id = 1;
-  string chat_id = 2;
-  string text = 3;
+  ChatMessage message = 2;
 }
 
 message SendMessageResponse {}
+
+enum SortOrder {
+  SORT_ORDER_UNSPECIFIED = 0;
+  SORT_ORDER_ASC = 1;
+  SORT_ORDER_DESC = 2;
+}
 
 message GetHistoryRequest {
   string session_id = 1;
   string chat_id = 2;
   int32 offset = 3;
   int32 limit = 4;
+  SortOrder sort_order = 5;
 }
 
 message GetHistoryResponse {

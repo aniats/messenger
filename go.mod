@@ -1,4 +1,4 @@
-module messenger
+module github.com/aniats/messenger
 
 go 1.26
 
@@ -10,6 +10,7 @@ require (
 )
 
 require (
+	github.com/spf13/pflag v1.0.10 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect

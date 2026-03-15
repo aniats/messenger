@@ -1,24 +1,38 @@
+// Package app provides the main application container.
 package app
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
-	"messenger/internal/app/grpc"
+
+	"github.com/aniats/messenger/internal/app/grpc"
 )
 
+// App is the main application container.
 type App struct {
-	GRPCServer *grpc.Server
+	grpcServer *grpc.Server
 }
 
-func New(
-	log *slog.Logger,
-	grpcPort int,
-) *App {
-
-	// todo: storage would be here later
-
-	grpcApp := grpc.New(log, grpcPort)
+// New creates a new application with the given logger and gRPC configuration.
+func New(log *slog.Logger, grpcCfg grpc.Config) *App {
+	grpcApp := grpc.New(log, grpcCfg)
 
 	return &App{
-		GRPCServer: grpcApp,
+		grpcServer: grpcApp,
 	}
+}
+
+// Start starts the application.
+func (a *App) Start(_ context.Context) error {
+	if err := a.grpcServer.Run(); err != nil {
+		return fmt.Errorf("failed to start grpc server: %w", err)
+	}
+
+	return nil
+}
+
+// Stop gracefully stops the application.
+func (a *App) Stop() {
+	a.grpcServer.Stop()
 }

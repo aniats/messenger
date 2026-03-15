@@ -1,72 +1,83 @@
+// Package config provides application configuration parsing from flags and environment variables.
 package config
 
 import (
-	"flag"
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/spf13/pflag"
 )
 
+const (
+	maxChatSizeDefault = 100
+	maxChatsNumDefault = 10
+	portDefault        = 50051
+)
+
+// Config holds the application configuration.
 type Config struct {
 	Port     int
 	ChatSize int
 	ChatsNum int
 	Env      string
+	LogLevel string
 }
 
+func lookupInt(envKey string, defaultVal int) int {
+	if v := os.Getenv(envKey); v != "" {
+		val, err := strconv.Atoi(v)
+		if err != nil {
+			log.Fatalf("invalid %s value: %s", envKey, v)
+		}
+
+		return val
+	}
+
+	return defaultVal
+}
+
+func lookupString(envKey string, defaultVal string) string {
+	if v := os.Getenv(envKey); v != "" {
+		return v
+	}
+
+	return defaultVal
+}
+
+// Parse parses configuration from flags and environment variables.
 func Parse() *Config {
-	maxChatSizeDefault := os.Getenv("MAX_CHAT_SIZE")
-	maxChatsNumDefault := os.Getenv("MAX_CHATS_NUM")
-	portDefault := os.Getenv("PORT")
-	env := os.Getenv("ENV")
+	chatSize := pflag.Int("max-chat-size", 0, "max number of messages in a chat")
+	chatsNum := pflag.Int("max-chats-num", 0, "max number of chats")
+	port := pflag.Int("port", 0, "gRPC server port")
 
-	chatSize := flag.Int("chat-size", 100, "max number of messages in a chat")
-	chatsNum := flag.Int("chats-num", 10, "max number of chats")
-	port := flag.Int("port", 50051, "gRPC server port")
+	pflag.Parse()
 
-	flag.Parse()
-
-	var isSetChatSize, isSetChatsNum, isSetPort bool
-
-	flag.Visit(func(f *flag.Flag) {
-		switch f.Name {
-		case "chat-size":
-			isSetChatSize = true
-		case "chats-num":
-			isSetChatsNum = true
-		case "port":
-			isSetPort = true
-		}
-	})
-
-	if !isSetChatSize && maxChatSizeDefault != "" {
-		val, err := strconv.Atoi(maxChatSizeDefault)
-		if err != nil {
-			log.Fatalf("invalid MAX_CHAT_SIZE value: %s", maxChatSizeDefault)
-		}
-		*chatSize = val
+	cfg := &Config{
+		Port:     0,
+		ChatSize: 0,
+		ChatsNum: 0,
+		Env:      lookupString("ENV", "local"),
+		LogLevel: lookupString("LOG_LEVEL", "debug"),
 	}
 
-	if !isSetChatsNum && maxChatsNumDefault != "" {
-		val, err := strconv.Atoi(maxChatsNumDefault)
-		if err != nil {
-			log.Fatalf("invalid MAX_CHATS_NUM value: %s", maxChatsNumDefault)
-		}
-		*chatsNum = val
+	if pflag.Lookup("max-chat-size").Changed {
+		cfg.ChatSize = *chatSize
+	} else {
+		cfg.ChatSize = lookupInt("MAX_CHAT_SIZE", maxChatSizeDefault)
 	}
 
-	if !isSetPort && portDefault != "" {
-		val, err := strconv.Atoi(portDefault)
-		if err != nil {
-			log.Fatalf("invalid PORT value: %s", portDefault)
-		}
-		*port = val
+	if pflag.Lookup("max-chats-num").Changed {
+		cfg.ChatsNum = *chatsNum
+	} else {
+		cfg.ChatsNum = lookupInt("MAX_CHATS_NUM", maxChatsNumDefault)
 	}
 
-	return &Config{
-		Port:     *port,
-		ChatSize: *chatSize,
-		ChatsNum: *chatsNum,
-		Env:      env,
+	if pflag.Lookup("port").Changed {
+		cfg.Port = *port
+	} else {
+		cfg.Port = lookupInt("PORT", portDefault)
 	}
+
+	return cfg
 }
